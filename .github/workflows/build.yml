@@ -1,0 +1,67 @@
+name: Build plugin ZIP
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Install deps
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Assemble plugin folder
+        id: pack
+        run: |
+          set -euo pipefail
+          NAME="$(jq -r .name plugin.json)"
+          SLUG="$(echo "$NAME" | tr '[:upper:] ' '[:lower:]-')"
+          OUT="pkg/$NAME"
+          mkdir -p "$OUT/dist"
+          cp plugin.json "$OUT/"
+          cp package.json "$OUT/"
+          cp dist/index.js "$OUT/dist/"
+          [ -f README.md ] && cp README.md "$OUT/" || true
+          [ -f LICENSE ] && cp LICENSE "$OUT/" || true
+          ( cd pkg && zip -r "../$SLUG.zip" "$NAME" )
+          echo "zip=$SLUG.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the ZIP has exactly one matching plugin.json
+        run: |
+          set -euo pipefail
+          ZIP="${{ steps.pack.outputs.zip }}"
+          COUNT="$(unzip -Z1 "$ZIP" | grep -c '/plugin.json$' || true)"
+          [ "$COUNT" -eq 1 ] || { echo "expected 1 plugin.json, found $COUNT"; exit 1; }
+          echo "ZIP contents:"; unzip -Z1 "$ZIP"
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          ZIP: ${{ steps.pack.outputs.zip }}
+        run: gh release upload "$TAG" "$ZIP" --clobber
+
+      - name: Upload as workflow artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: ${{ steps.pack.outputs.zip }}
