@@ -1,0 +1,11 @@
+{
+  "name": "Junk Store Pro Installer",
+  "author": "Eben Bruyns",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["Launcher", "Epic", "GOG", "Amazon", "Itch", "Emulators", "Custom Stores", "Game Libraries"],
+    "description": "Installs Junk Store Pro. The original game mode launcher super charged. This is a paid product with a 7 day free trial, $39.99 and get 12 months of updates. If you don't want updates beyond that cancel any time and the software will continue to work afterwards, updates requires payments. Version 3 does not break with steam updates and does not require decky loader: https://www.junkstore.xyz/status/",
+    "image": "https://www.junkstore.xyz/assets/images/site/js-steamdeck-hero-lighter.webp"
+  }
+}
